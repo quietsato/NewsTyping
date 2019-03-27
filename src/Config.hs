@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveGeneric #-}
 
-module File (getKey) where
+module Config (getKey) where
 
 import           Data.Yaml
 import           GHC.Generics

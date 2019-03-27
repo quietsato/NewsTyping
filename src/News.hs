@@ -3,7 +3,7 @@
 
 module News (getTypingStrings) where
 
-import           File
+import           Config
 import           Data.Aeson
 import           GHC.Generics
 import           Network.HTTP.Simple
