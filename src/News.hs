@@ -1,7 +1,7 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
 
-module News (getTypingStrings) where
+module News (getArticlesFromApi) where
 
 import           Config
 import           Data.Aeson
@@ -26,6 +26,7 @@ getArticlesFromApi = do
     r <- setRequestSecure True
       . setRequestQueryString
         [ (B8.pack "country", Just (B8.pack "us"))
+        , (B8.pack "pageSize", Just (B8.pack "100"))
         , (B8.pack "apiKey", Just (B8.pack apiKey))]
       <$> parseRequest "https://newsapi.org/v2/top-headlines"
     httpLbs r
