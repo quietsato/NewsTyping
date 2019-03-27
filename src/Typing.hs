@@ -4,7 +4,7 @@ import           System.Console.ANSI
 import           System.IO
 import           System.Timeout
 import           Data.Time.Clock.System
-import           Data.Ratio
+import           Control.Concurrent
 
 data Game = Game { strs :: [String]
                  , remStrs :: [String]
@@ -75,6 +75,7 @@ initGame = do
 startGame :: Game -> IO Result
 startGame g = do
   initGame
+  countDown 3
   s <- (\x -> appendTime (systemSeconds x) (systemNanoseconds x))
     <$> getSystemTime
   t <- typing g Init initialTyped
@@ -103,6 +104,20 @@ typing g s t = do
 
     didFinishGame g = (null . remStrs) g && didFinCurrentStr g
 
+countDown :: Int -> IO ()
+countDown s =
+  case s of
+    0 -> return ()
+    _ -> do
+      putStr $ show s
+      x <- timeout (2 * sec) (threadDelay sec *> clear)
+      case x of
+        Just _ -> countDown (s - 1)
+        Nothing -> return ()
+  where
+    sec = 1000000
+
+
 display :: Game -> GameState -> IO ()
 display g s = do
   setTypedColor
@@ -120,14 +135,18 @@ display g s = do
 
     rem = currentRemStr g
 
-    setNextCharColor s
-      | s == Init = setSGR [SetColor Foreground Vivid Yellow]
-      | s == Correct = setSGR [SetColor Foreground Vivid Green]
-      | s == Miss = setSGR [SetColor Foreground Vivid Red]
+    setNextCharColor s = do
+      setDefaultColor
+      case s of
+        Init -> setSGR [SetColor Foreground Vivid Yellow]
+        Correct -> setSGR [SetColor Foreground Vivid Green]
+        Miss -> setSGR [SetColor Background Vivid Red]
 
     setTypedColor = setSGR [SetColor Foreground Vivid Black]
 
-    setRemColor = setSGR [Reset]
+    setDefaultColor = setSGR [Reset]  
+
+    setRemColor = setDefaultColor
 
 clear :: IO ()
 clear = do
