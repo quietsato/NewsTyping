@@ -13,7 +13,6 @@ main :: IO ()
 main = do
   n <- getCountOfGameStrings
   ts <- getTypingStrings
-  print $ length ts
   ss <- takeRandom n ts
   g <- createGame ss
   r <- startGame g

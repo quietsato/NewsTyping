@@ -1,7 +1,7 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
 
-module News (getArticlesFromApi) where
+module News (getTypingStrings) where
 
 import           Config
 import           Data.Aeson
