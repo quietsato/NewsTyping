@@ -3,7 +3,9 @@
 module Config (getKey) where
 
 import           Data.Yaml
+import           Data.List
 import           GHC.Generics
+import           System.Environment
 
 newtype Key = Key { key :: String }
   deriving (Show, Generic)
@@ -15,7 +17,8 @@ getKey = key <$> readYaml
 
 readYaml :: IO Key
 readYaml = do
-  f <- decodeFileEither "./config.yaml"
+  d <- dropWhileEnd (/= '/') <$> getExecutablePath
+  f <- decodeFileEither $ d ++ "config.yaml"
   case f of
     Left e  -> (error . show) e
     Right k -> return k
