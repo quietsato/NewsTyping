@@ -34,6 +34,20 @@ createGame ss = do
       Just (_, c) -> return c
   return $ nextGameString $ Game ss ss "" "" ' ' cw
 
+startGame :: Game -> IO Result
+startGame g = do
+  initGame
+  countDown 3
+  s <- (\x -> appendTime (systemSeconds x) (systemNanoseconds x))
+    <$> getSystemTime
+  t <- typing g Init initialTyped
+  f <- (\x -> appendTime (systemSeconds x) (systemNanoseconds x))
+    <$> getSystemTime
+  return $ Result (f - s) t
+  where
+    appendTime :: (Show a, Show b) => a -> b -> Double
+    appendTime sec nano = read (show sec ++ "." ++ show nano)
+
 nextGameString :: Game -> Game
 nextGameString g =
   g { remStrs = rs, currentTypedStr = "", currentRemStr = cs, nextChar = nc }
@@ -72,20 +86,6 @@ initGame = do
   hSetBuffering stdin NoBuffering
   hSetEcho stdout False
 
-startGame :: Game -> IO Result
-startGame g = do
-  initGame
-  countDown 3
-  s <- (\x -> appendTime (systemSeconds x) (systemNanoseconds x))
-    <$> getSystemTime
-  t <- typing g Init initialTyped
-  f <- (\x -> appendTime (systemSeconds x) (systemNanoseconds x))
-    <$> getSystemTime
-  return $ Result (f - s) t
-  where
-    appendTime :: (Show a, Show b) => a -> b -> Double
-    appendTime sec nano = read (show sec ++ "." ++ show nano)
-
 typing :: Game -> GameState -> Typed -> IO Typed
 typing g s t = do
   display g s
@@ -105,18 +105,16 @@ typing g s t = do
     didFinishGame g = (null . remStrs) g && didFinCurrentStr g
 
 countDown :: Int -> IO ()
-countDown s =
-  case s of
-    0 -> return ()
-    _ -> do
-      putStr $ show s
-      x <- timeout (2 * sec) (threadDelay sec *> clear)
-      case x of
-        Just _ -> countDown (s - 1)
-        Nothing -> return ()
+countDown s = case s of
+  0 -> return ()
+  _ -> do
+    putStr $ show s
+    x <- timeout (2 * sec) (threadDelay sec *> clear)
+    case x of
+      Just _  -> countDown (s - 1)
+      Nothing -> return ()
   where
     sec = 1000000
-
 
 display :: Game -> GameState -> IO ()
 display g s = do
@@ -138,13 +136,13 @@ display g s = do
     setNextCharColor s = do
       setDefaultColor
       case s of
-        Init -> setSGR [SetColor Foreground Vivid Yellow]
+        Init    -> setSGR [SetColor Foreground Vivid Yellow]
         Correct -> setSGR [SetColor Foreground Vivid Green]
-        Miss -> setSGR [SetColor Background Vivid Red]
+        Miss    -> setSGR [SetColor Background Vivid Red]
 
     setTypedColor = setSGR [SetColor Foreground Vivid Black]
 
-    setDefaultColor = setSGR [Reset]  
+    setDefaultColor = setSGR [Reset]
 
     setRemColor = setDefaultColor
 
