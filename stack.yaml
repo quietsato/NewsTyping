@@ -40,6 +40,7 @@ packages:
 # extra-deps: []
 extra-deps:
   - ansi-terminal-0.9@sha256:24e357bccd882add0d9caee63136d6b7923aaa9e36ed515097230dca82b0065c
+  - no-buffering-workaround-0.1.0.0@sha256:199f1a89c0b1c64f46006fb82322b7c5071c4ccb31dc575de04725af189625c5
 
 # Override default flag values for local packages and extra-deps
 # flags: {}
