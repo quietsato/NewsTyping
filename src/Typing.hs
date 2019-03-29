@@ -1,5 +1,6 @@
 module Typing (createGame, startGame, Result(..), Typed(..)) where
 
+import           System.IO.NoBufferingWorkaround
 import           System.Console.ANSI
 import           System.IO
 import           System.Timeout
@@ -83,13 +84,13 @@ missType t = t { allCount = ac, missCount = mc }
 initGame :: IO ()
 initGame = do
   hSetBuffering stdout NoBuffering
-  hSetBuffering stdin NoBuffering
   hSetEcho stdout False
+  initGetCharNoBuffering
 
 typing :: Game -> GameState -> Typed -> IO Typed
 typing g s t = do
   display g s
-  c <- getChar
+  c <- getCharNoBuffering
   clear
   if c == nextChar g
     then finOrLoop g t
