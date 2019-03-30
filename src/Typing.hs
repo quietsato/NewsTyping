@@ -4,6 +4,7 @@ import           System.IO.NoBufferingWorkaround
 import           System.Console.ANSI
 import           System.IO
 import           System.Timeout
+import           System.Exit
 import           Data.Time.Clock.System
 import           Control.Concurrent
 
@@ -92,10 +93,13 @@ typing g s t = do
   display g s
   c <- getCharNoBuffering
   clear
-  if c == nextChar g
-    then finOrLoop g t
-    else typing g Miss (missType t)
+  checkInput c g t
   where
+    checkInput c g t
+      | c == nextChar g = finOrLoop g t
+      | c == '\ESC' = exitSuccess
+      | otherwise = typing g Miss (missType t)
+
     finOrLoop g t
       | didFinishGame g = return t
       | didFinCurrentStr g = typing (nextGameString g) Init (correctType t)
