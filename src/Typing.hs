@@ -1,4 +1,4 @@
-module Typing (createGame, startGame, Result(..), Typed(..)) where
+module Typing (createGame, startGame, Result(..), TypeCounter(..)) where
 
 import           Config
 import           System.IO.NoBufferingWorkaround
@@ -7,6 +7,7 @@ import           System.IO
 import           System.Timeout
 import           System.Exit
 import           Data.Time.Clock.System
+import           Data.Typing.Record
 import           Control.Concurrent
 
 data Game = Game { strs :: [String]
@@ -16,17 +17,6 @@ data Game = Game { strs :: [String]
                  , nextChar :: Char
                  , consoleWidth :: Int
                  }
-
-data Typed = Typed { allCount :: Int, correctCount :: Int, missCount :: Int }
-  deriving Show
-
-data Result = Result { time :: Double, typedData :: Typed }
-  deriving Show
-
-data GameState = Init
-               | Correct
-               | Miss
-  deriving (Eq)
 
 createGame :: [String] -> IO Game
 createGame ss = do
@@ -70,40 +60,24 @@ nextGameChar g = g { currentTypedStr = ts, currentRemStr = cs, nextChar = nc }
 
     (nc:cs) = currentRemStr g
 
-initialTyped :: Typed
-initialTyped = Typed 0 0 0
-
-correctType :: Typed -> Typed
-correctType t = t { allCount = ac, correctCount = cc }
-  where
-    ac = allCount t + 1
-
-    cc = correctCount t + 1
-
-missType :: Typed -> Typed
-missType t = t { allCount = ac, missCount = mc }
-  where
-    ac = allCount t + 1
-
-    mc = missCount t + 1
-
 initGame :: IO ()
 initGame = do
   hSetBuffering stdout NoBuffering
   hSetEcho stdout False
   initGetCharNoBuffering
 
-typing :: Game -> GameState -> Typed -> IO Typed
-typing g s t = do
-  display g s
+typing :: Game -> TypeCounter -> IO TypeCounter
+typing g t = do
+  f
+  display g (getTypingStatus t)
   c <- getCharNoBuffering
   clear
   checkInput c g t
   where
     checkInput c g t
-      | c == nextChar g = finOrLoop g t
+      | c == nextChar g = typing g (countCorrect t)
       | c == '\ESC' = exitSuccess
-      | otherwise = typing g Miss (missType t)
+      | otherwise = typing g (countMiss t)
 
     finOrLoop g t
       | didFinishGame g = return t
@@ -126,7 +100,7 @@ countDown s = case s of
   where
     sec = 1000000
 
-display :: Game -> GameState -> IO ()
+display :: Game -> Status -> IO ()
 display g s = do
   setTypedColor
   putStr displayTyped
@@ -146,7 +120,7 @@ display g s = do
     setNextCharColor s = do
       setDefaultColor
       case s of
-        Init    -> setSGR [SetColor Foreground Vivid Yellow]
+        None    -> setSGR [SetColor Foreground Vivid Yellow]
         Correct -> setSGR [SetColor Foreground Vivid Green]
         Miss    -> setSGR [SetColor Background Vivid Red]
 
