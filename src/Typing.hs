@@ -114,8 +114,8 @@ display g s = do
     setNextCharColor s = do
       setDefaultColor
       case s of
-        None    -> setSGR [SetColor Foreground Vivid Yellow]
-        Correct -> setSGR [SetColor Foreground Vivid Green]
+        None    -> setSGR [SetColor Foreground Dull Yellow]
+        Correct -> setSGR [SetColor Foreground Dull Yellow]
         Miss    -> setSGR [SetColor Background Vivid Red]
 
     setTypedColor = setSGR [SetColor Foreground Vivid Black]
