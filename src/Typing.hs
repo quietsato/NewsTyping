@@ -1,5 +1,6 @@
 module Typing (createGame, startGame, Result(..), Typed(..)) where
 
+import           Config
 import           System.IO.NoBufferingWorkaround
 import           System.Console.ANSI
 import           System.IO
@@ -31,9 +32,13 @@ createGame :: [String] -> IO Game
 createGame ss = do
   cw <- do
     s <- getTerminalSize
-    case s of
+    w <- case s of
       Nothing     -> return $ (maximum . map length) ss
       Just (_, c) -> return c
+    c <- isFixConsoleWidth
+    if c
+      then return $ w - 1
+      else return w
   return $ nextGameString $ Game ss ss "" "" ' ' cw
 
 startGame :: Game -> IO Result

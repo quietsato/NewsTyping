@@ -1,13 +1,13 @@
 {-# LANGUAGE DeriveGeneric #-}
 
-module Config (getKey) where
+module Config (getKey, isFixConsoleWidth) where
 
 import           Data.Yaml
 import           Data.List
 import           GHC.Generics
 import           System.Environment
 
-newtype Key = Key { key :: String }
+data Key = Key { key :: String, fixConsoleWidth :: Bool }
   deriving (Show, Generic)
 
 instance FromJSON Key
@@ -15,10 +15,13 @@ instance FromJSON Key
 getKey :: IO String
 getKey = key <$> readYaml
 
+isFixConsoleWidth :: IO Bool
+isFixConsoleWidth = fixConsoleWidth <$> readYaml
+
 readYaml :: IO Key
 readYaml = do
   d <- dropWhileEnd (/= '/') <$> getExecutablePath
   f <- decodeFileEither $ d ++ "config.yaml"
   case f of
     Left e  -> (error . show) e
-    Right k -> return k
+    Right c -> return c
