@@ -2,12 +2,14 @@ module Main where
 
 import           News
 import           Typing
-import           Data.List
-import           Data.Fixed
-import           System.Random
 import           Control.Monad
+import           Data.Fixed
+import           Data.List
+import           Data.Record
 import           System.Environment
 import           System.Exit
+import           System.Random
+
 
 main :: IO ()
 main = do
@@ -23,7 +25,7 @@ main = do
       | otherwise = do
         i <- getStdRandom (randomR (0, length as - 1))
         let e = as !! i
-        es <- takeRandom (n - 1) (delete e as)
+        es <- takeRandom (n - 1) $ (take i as) ++ (drop (i + 1) as)
         return (e:es)
 
 getCountOfGameStrings :: IO Int
@@ -37,7 +39,7 @@ getCountOfGameStrings = do
     parser [arg]
       | arg `isPrefixOf` "help" = usage >> exitSuccess
       | otherwise = return (Just (read arg :: Int))
-    parser (_:_) = usage >> exitFailure
+    parser _ = usage >> exitFailure
 
     usage = do
       pname <- getProgName
@@ -45,17 +47,18 @@ getCountOfGameStrings = do
 
 displayResult :: Result -> IO ()
 displayResult r = do
-  let t = typedData r
+  let t = counter r
       s = time r
-  putStrLn $ "Typed:    " ++ show (allCount t)
-  putStrLn $ "Correct:  " ++ show (correctCount t)
-  putStrLn $ "Missed:   " ++ show (missCount t)
-  putStrLn $ "Accuracy: " ++ show ((correctCount t * 100) ./ allCount t) ++ "%"
-  putStrLn ""
-  putStrLn $ "Time:     " ++ show (toCenti s) ++ "s"
-  putStrLn $ "Speed:    " ++ show (correctCount t ./ s) ++ "key/sec"
+      ac = getAllCount t
+      cc = getCorrectCount t
+      mc = getMissCount t
+  mapM_ putStrLn [ "Typed:    " ++ show ac
+                 , "Correct:  " ++ show cc
+                 , "Missed:   " ++ show mc
+                 , "Accuracy: " ++ show ((cc * 100) ./ ac) ++ "%"
+                 , ""
+                 , "Time:     " ++ show (toCenti s) ++ "s"
+                 , "Speed:    " ++ show (cc ./ s) ++ "key/sec"]
   where
-    (./) :: (Real a, Real b) => a -> b -> Centi
     (./) a b = toCenti a / toCenti b
-
     toCenti a = realToFrac a :: Centi

@@ -1,17 +1,17 @@
-module Typing (createGame, startGame, Result(..), TypeCounter(..)) where
+module Typing (createGame, startGame) where
 
 import           Config
-import           System.IO.NoBufferingWorkaround
-import           System.Console.ANSI
-import           System.IO
-import           System.Timeout
-import           System.Exit
-import           Data.Time.Clock.System
-import           Data.Typing.Record
+import           Data.Record
 import           Control.Concurrent
+import           Data.Time.Clock.System
+import           System.Console.ANSI
+import           System.Exit
+import           System.IO
+import           System.IO.NoBufferingWorkaround
+import           System.Timeout
 
-data Game = Game { strs :: [String]
-                 , remStrs :: [String]
+
+data Game = Game { remStrs :: [String]
                  , currentTypedStr :: String
                  , currentRemStr :: String
                  , nextChar :: Char
@@ -29,94 +29,88 @@ createGame ss = do
     if c
       then return $ w - 1
       else return w
-  return $ nextGameString $ Game ss ss "" "" ' ' cw
+  let
+    ((nc:rs):rss) = ss
+    ts = ""
+  return $ Game rss ts rs nc cw
 
 startGame :: Game -> IO Result
 startGame g = do
-  initGame
+  initIO
   countDown 3
   s <- (\x -> appendTime (systemSeconds x) (systemNanoseconds x))
     <$> getSystemTime
-  t <- typing g Init initialTyped
+  t <- typing g newCounter
   f <- (\x -> appendTime (systemSeconds x) (systemNanoseconds x))
     <$> getSystemTime
   return $ Result (f - s) t
   where
-    appendTime :: (Show a, Show b) => a -> b -> Double
-    appendTime sec nano = read (show sec ++ "." ++ show nano)
+    initIO = do
+      hSetBuffering stdout NoBuffering
+      hSetEcho stdout False
+      initGetCharNoBuffering
+    
+    countDown s
+      | s == 0 = return ()
+      | otherwise = do
+        putStr $ show s
+        x <- timeout (2 * sec) (threadDelay sec *> clear)
+        case x of
+          Just _  -> countDown (s - 1)
+          Nothing -> return ()
+      where
+        sec = 1000000
 
-nextGameString :: Game -> Game
-nextGameString g =
-  g { remStrs = rs, currentTypedStr = "", currentRemStr = cs, nextChar = nc }
-  where
-    rs = (tail . remStrs) g
-
-    (nc:cs) = (head . remStrs) g
-
-nextGameChar :: Game -> Game
-nextGameChar g = g { currentTypedStr = ts, currentRemStr = cs, nextChar = nc }
-  where
-    ts = currentTypedStr g ++ [nextChar g]
-
-    (nc:cs) = currentRemStr g
-
-initGame :: IO ()
-initGame = do
-  hSetBuffering stdout NoBuffering
-  hSetEcho stdout False
-  initGetCharNoBuffering
+    appendTime sec nano = read (show sec ++ "." ++ show nano) :: Double
 
 typing :: Game -> TypeCounter -> IO TypeCounter
 typing g t = do
-  f
   display g (getTypingStatus t)
   c <- getCharNoBuffering
-  clear
-  checkInput c g t
+  clear *> loop c g t
   where
-    checkInput c g t
-      | c == nextChar g = typing g (countCorrect t)
-      | c == '\ESC' = exitSuccess
-      | otherwise = typing g (countMiss t)
+  loop c g t
+    | c == '\ESC'     = exitSuccess
+    | c == nextChar g = continueGame g t
+    | otherwise       = typing g $ countMiss t
 
-    finOrLoop g t
-      | didFinishGame g = return t
-      | didFinCurrentStr g = typing (nextGameString g) Init (correctType t)
-      | otherwise = typing (nextGameChar g) Correct (correctType t)
+  continueGame g t
+    | didFinishGame g    = return t
+    | didFinCurrentStr g = typing (nextGameString g) $ countCorrect t
+    | otherwise          = typing (nextGameChar   g) $ countCorrect t
 
-    didFinCurrentStr = null . currentRemStr
+  didFinCurrentStr = null . currentRemStr
 
-    didFinishGame g = (null . remStrs) g && didFinCurrentStr g
+  didFinishGame g = (null . remStrs) g && didFinCurrentStr g
+  
+  nextGameChar g =
+    let
+      Game _ ts rs nc _ = g
+      ts' = ts ++ [nc]
+      (nc':cs') = rs
+    in
+      g { currentTypedStr = ts', currentRemStr = cs', nextChar = nc' }
 
-countDown :: Int -> IO ()
-countDown s = case s of
-  0 -> return ()
-  _ -> do
-    putStr $ show s
-    x <- timeout (2 * sec) (threadDelay sec *> clear)
-    case x of
-      Just _  -> countDown (s - 1)
-      Nothing -> return ()
-  where
-    sec = 1000000
+  nextGameString g =
+    let
+      ts' = ""
+      ((nc':cs'):rss') = remStrs g
+    in 
+      g { remStrs = rss', currentTypedStr = ts', currentRemStr = cs', nextChar = nc' }
 
 display :: Game -> Status -> IO ()
 display g s = do
-  setTypedColor
-  putStr displayTyped
-  setNextCharColor s
-  putChar $ nextChar g
-  setRemColor
-  putStr displayRem
-  where
-    displayTyped = drop (max (length typ - consoleWidth g `div` 2) 0) typ
-
-    displayRem = take (consoleWidth g - length displayTyped - 1) rem
-
+  let
     typ = currentTypedStr g
-
     rem = currentRemStr g
-
+    dTyp = drop (max (length typ - consoleWidth g `div` 2) 0) typ
+    dChr = nextChar g
+    dRem = take (consoleWidth g - length dTyp - 1) rem
+     
+  setTypedColor      *> putStr  dTyp 
+  setNextCharColor s *> putChar dChr
+  setRemColor        *> putStr  dRem
+  where
     setNextCharColor s = do
       setDefaultColor
       case s of
@@ -134,4 +128,3 @@ clear :: IO ()
 clear = do
   clearFromCursorToLineBeginning
   setCursorColumn 0
-

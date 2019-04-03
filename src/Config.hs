@@ -2,8 +2,8 @@
 
 module Config (getKey, isFixConsoleWidth) where
 
-import           Data.Yaml
 import           Data.List
+import           Data.Yaml
 import           GHC.Generics
 import           System.Environment
 

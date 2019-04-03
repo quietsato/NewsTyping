@@ -1,8 +1,8 @@
-module Data.Typing.Record
-    ( Result
+module Data.Record
+    ( Result(..)
     , TypeCounter
     , Status(..)
-    , countsToTuple
+    , newCounter
     , getAllCount
     , getCorrectCount
     , getMissCount
@@ -14,7 +14,7 @@ data TypeCounter =
   MkCounter { correct :: Int, miss :: Int, typingStatus :: Status }
   deriving Show
 
-data Result = MkResult { time :: Double, counter :: TypeCounter }
+data Result = Result { time :: Double, counter :: TypeCounter }
   deriving Show
 
 data Status = None
@@ -22,11 +22,8 @@ data Status = None
             | Miss
   deriving Show
 
-createResult :: Double -> TypeCounter -> Result
-createResult = MkResult
-
-createCounter :: TypeCounter
-createCounter = MkCounter 0 0 None
+newCounter :: TypeCounter
+newCounter = MkCounter 0 0 None
 
 countsToTuple :: TypeCounter -> (Int, Int)
 countsToTuple t = (correct t, miss t)
