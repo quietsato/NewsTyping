@@ -31,3 +31,24 @@ stack run
 ### Use executable file
 edit config.yaml then put it in the same dir as the executable file.  
 Optionally, add the path to executable file to your environment variables.
+
+## Run
+
+```bash
+newstyping
+```
+
+Start game with 3 articles.
+
+```bash
+newstyping 5
+```
+
+Start game with 5 articles.  
+You can specify the number of articles.
+
+```bash
+newstyping help
+```
+
+Show help.
