@@ -8,6 +8,7 @@ import           Data.Aeson
 import           GHC.Generics
 import           Network.Connection
 import           Network.HTTP.Conduit
+import           System.Info
 import qualified Data.ByteString.Char8 as B8
 
 newtype Response = Response { articles :: [Article] }
@@ -25,7 +26,9 @@ getArticlesFromApi = do
   apiKey <- getKey
   res <- do
     let
-      mgrSettings = mkManagerSettings (TLSSettingsSimple True False False) Nothing
+      mgrSettings = case os of
+        "mingw32" -> mkManagerSettings (TLSSettingsSimple True False False) Nothing
+        _         -> tlsManagerSettings
     req <- setQueryString
           [ (B8.pack "country", Just (B8.pack "us"))
           , (B8.pack "pageSize", Just (B8.pack "100"))
