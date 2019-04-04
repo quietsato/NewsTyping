@@ -6,6 +6,7 @@ import           Data.List
 import           Data.Yaml
 import           GHC.Generics
 import           System.Environment
+import           System.Info
 
 data Key = Key { key :: String, fixConsoleWidth :: Bool }
   deriving (Show, Generic)
@@ -20,7 +21,11 @@ isFixConsoleWidth = fixConsoleWidth <$> readYaml
 
 readYaml :: IO Key
 readYaml = do
-  d <- dropWhileEnd (/= '/') <$> getExecutablePath
+  let
+    sp = case os of
+      "mingw32" -> '\\'
+      _         -> '/'
+  d <- dropWhileEnd (/= sp) <$> getExecutablePath
   f <- decodeFileEither $ d ++ "config.yaml"
   case f of
     Left e  -> (error . show) e
