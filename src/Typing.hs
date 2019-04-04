@@ -10,7 +10,6 @@ import           System.IO
 import           System.IO.NoBufferingWorkaround
 import           System.Timeout
 
-
 data Game = Game { remStrs :: [String]
                  , currentTypedStr :: String
                  , currentRemStr :: String
@@ -38,18 +37,16 @@ startGame :: Game -> IO Result
 startGame g = do
   initIO
   countDown 3
-  s <- (\x -> appendTime (systemSeconds x) (systemNanoseconds x))
-    <$> getSystemTime
+  s <- getCurrentTime
   t <- typing g newCounter
-  f <- (\x -> appendTime (systemSeconds x) (systemNanoseconds x))
-    <$> getSystemTime
+  f <- getCurrentTime
   return $ Result (f - s) t
   where
     initIO = do
       hSetBuffering stdout NoBuffering
       hSetEcho stdout False
       initGetCharNoBuffering
-    
+
     countDown s
       | s == 0 = return ()
       | otherwise = do
@@ -61,6 +58,9 @@ startGame g = do
       where
         sec = 1000000
 
+    getCurrentTime = (\x -> appendTime (systemSeconds x) (systemNanoseconds x))
+      <$> getSystemTime
+    
     appendTime sec nano = read (show sec ++ "." ++ show nano) :: Double
 
 typing :: Game -> TypeCounter -> IO TypeCounter
@@ -69,45 +69,51 @@ typing g t = do
   c <- getCharNoBuffering
   clear *> loop c g t
   where
-  loop c g t
-    | c == '\ESC'     = exitSuccess
-    | c == nextChar g = continueGame g t
-    | otherwise       = typing g $ countMiss t
+    loop c g t
+      | c == '\ESC' = exitSuccess
+      | c == nextChar g = continueGame g t
+      | otherwise = typing g $ countMiss t
 
-  continueGame g t
-    | didFinishGame g    = return t
-    | didFinCurrentStr g = typing (nextGameString g) $ countCorrect t
-    | otherwise          = typing (nextGameChar   g) $ countCorrect t
+    continueGame g t
+      | didFinishGame g = return t
+      | didFinCurrentStr g = typing (nextGameString g) $ countCorrect t
+      | otherwise = typing (nextGameChar g) $ countCorrect t
 
-  didFinCurrentStr = null . currentRemStr
+    didFinCurrentStr = null . currentRemStr
 
-  didFinishGame g = (null . remStrs) g && didFinCurrentStr g
-  
-  nextGameChar g =
-    let
-      Game _ ts rs nc _ = g
-      ts' = ts ++ [nc]
-      (nc':cs') = rs
-    in
-      g { currentTypedStr = ts', currentRemStr = cs', nextChar = nc' }
+    didFinishGame g = (null . remStrs) g && didFinCurrentStr g
 
-  nextGameString g =
-    let
-      ts' = ""
-      ((nc':cs'):rss') = remStrs g
-    in 
-      g { remStrs = rss', currentTypedStr = ts', currentRemStr = cs', nextChar = nc' }
+    nextGameChar g =
+      let 
+        Game _ ts rs nc _ = g
+        ts' = ts ++ [nc]
+        (nc':cs') = rs
+      in 
+        g { currentTypedStr = ts'
+           , currentRemStr = cs'
+           , nextChar = nc' 
+           }
+
+    nextGameString g =
+      let 
+        ts' = ""
+        ((nc':cs'):rss') = remStrs g
+      in
+        g { remStrs = rss'
+           , currentTypedStr = ts'
+           , currentRemStr = cs'
+           , nextChar = nc'
+           }
 
 display :: Game -> Status -> IO ()
 display g s = do
-  let
-    typ = currentTypedStr g
-    rem = currentRemStr g
+  let 
+    typ  = currentTypedStr g
+    rem  = currentRemStr g
     dTyp = drop (max (length typ - consoleWidth g `div` 2) 0) typ
     dChr = nextChar g
     dRem = take (consoleWidth g - length dTyp - 1) rem
-     
-  setTypedColor      *> putStr  dTyp 
+  setTypedColor      *> putStr  dTyp
   setNextCharColor s *> putChar dChr
   setRemColor        *> putStr  dRem
   where

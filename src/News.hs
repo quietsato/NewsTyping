@@ -35,7 +35,7 @@ getArticlesFromApi = do
     Right dc -> return $ articles dc
 
 getDescString :: Maybe String -> String
-getDescString Nothing = ""
+getDescString Nothing  = ""
 getDescString (Just x) = toInputable x
   where
     toInputable = filter (`elem` [' ' .. '~'])

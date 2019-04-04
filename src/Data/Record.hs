@@ -17,19 +17,14 @@ data TypeCounter =
 data Result = Result { time :: Double, counter :: TypeCounter }
   deriving Show
 
-data Status = None
-            | Correct
-            | Miss
+data Status = None | Correct | Miss
   deriving Show
 
 newCounter :: TypeCounter
 newCounter = MkCounter 0 0 None
 
-countsToTuple :: TypeCounter -> (Int, Int)
-countsToTuple t = (correct t, miss t)
-
 getAllCount :: TypeCounter -> Int
-getAllCount = uncurry (+) . countsToTuple
+getAllCount t = (correct t) + (miss t)
 
 getCorrectCount :: TypeCounter -> Int
 getCorrectCount = correct
