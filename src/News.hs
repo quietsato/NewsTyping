@@ -6,6 +6,7 @@ module News (getTypingStrings) where
 import           Config
 import           Data.Aeson
 import           GHC.Generics
+import           Network.Connection
 import           Network.HTTP.Conduit
 import qualified Data.ByteString.Char8 as B8
 
@@ -23,12 +24,14 @@ getArticlesFromApi :: IO [Article]
 getArticlesFromApi = do
   apiKey <- getKey
   res <- do
+    let
+      mgrSettings = mkManagerSettings (TLSSettingsSimple True False False) Nothing
     req <- setQueryString
           [ (B8.pack "country", Just (B8.pack "us"))
           , (B8.pack "pageSize", Just (B8.pack "100"))
           , (B8.pack "apiKey", Just (B8.pack apiKey))]
-           <$> parseUrl "https://newsapi.org/v2/top-headlines"
-    man <- newManager tlsManagerSettings
+           <$> parseUrlThrow "https://newsapi.org/v2/top-headlines"
+    man <- newManager mgrSettings
     httpLbs req man
   case eitherDecode $ responseBody res of
     Left er  -> error er
