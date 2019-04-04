@@ -30,7 +30,7 @@ author: lnsf
 github: lnsf/NewsTyping
 license: MIT
 executables:
-  newstyping-exe:
+  newstyping:
     source-dirs: app
     main: Main.hs
     ghc-options:
